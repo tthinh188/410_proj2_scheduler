@@ -1,54 +1,48 @@
 /*
  * SchedulerSRTF.cpp
  *
- *  Created on: Sep 10, 2019
- *      Author: keith
+ *  Created on: Sep 24, 2019
+ *      Author: Thinh Phan
  *
  *      implements shortest remaining time first scheduling algorithm
  *     pre-emptive
  */
 
 #include "../includes/scheduler_SRTF.h"
-#include "../includes/constants.h"
+#include <algorithm>
 
 bool Scheduler_SRTF::time_to_switch_processes(int tick_count, PCB &p){
-	sort();
-	return Scheduler::time_to_switch_processes(tick_count, p);
-}
-
-int minIndex(std::queue<PCB> *q, int sortedIndex){
-	int min_index = -1;
-	int min_val = 9999;
-	for (int i =0; i < q->size(); i++){
-		PCB curr = q->front();
-		q->pop();
-		if (curr.remaining_cpu_time <= min_val && i <= sortedIndex){
-			min_index = i;
-			min_val = curr.remaining_cpu_time;
-		}
-		q->push(curr);
+	if (p.remaining_cpu_time <= 0){
+		return true;
 	}
-	return min_index;
-}
-
-void insertMinToEnd(std::queue<PCB> *q, int min_index){
-	PCB min_val;
-	for (int i = 0; i< q->size(); i++){
-		PCB curr = q->front();
-		q->pop();
-		if (i != min_index){
-			q->push(curr);
-		}
-		else{
-			min_val = curr;
-		}
+	// switch if a faster job in queue
+	else if (p.remaining_cpu_time > ready_q->front().remaining_cpu_time && !ready_q->empty()){
+		return true;
 	}
-	q->push(min_val);
+	else{
+		return false;
+	}
 }
 
 void Scheduler_SRTF::sort(){
-	for (int i =1; i< ready_q->size(); i++){
-		int min_index = minIndex(ready_q, i);
-		insertMinToEnd(ready_q, min_index);
-	}
+
+	int q_size = ready_q->size();
+
+	// convert to vector to use std sort
+	std::vector<PCB> v;
+		for (int i =0; i< q_size; i++){
+			v.push_back(ready_q->front());
+			ready_q->pop();
+		}
+
+		std::sort(v.begin(),v.end(), [] (PCB p1, PCB p2){
+			// ascending order of remaining cpu time
+			return p1.remaining_cpu_time < p2.remaining_cpu_time;
+		});
+
+		// put sorted PCB back to the queue
+		for (int i =0; i< q_size; i++){
+			ready_q->push(v.front());
+			v.erase(v.begin());
+		}
 }
